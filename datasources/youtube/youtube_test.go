@@ -101,3 +101,30 @@ func TestRecognizeAndImportYouTubePlaylistCSV(t *testing.T) {
 		t.Fatalf("imported playlist graph = %#v, want Watch later metadata", graph)
 	}
 }
+
+func TestRecognizeAndImportYouTubeVideoMetadataCSV(t *testing.T) {
+	const fixture = "Video Id,Channel Id,Title,Status,Visibility,Time Created,Time Published,Duration,Description,Category,View Count\nabc123,channel,Example,processed,Private,2024-01-01 00:00:00 UTC,2024-01-01 00:00:00 UTC,42 seconds,,Music,3\n"
+	filename := "Google/Alt 1/YouTube and YouTube Music/videos/Video Metadata.csv"
+	fsys := fstest.MapFS{filename: &fstest.MapFile{Data: []byte(fixture)}}
+	entry := timeline.DirEntry{DirEntry: fixtureDirEntry{name: "Video Metadata.csv"}, FS: fsys, Filename: filename}
+	rec, err := (&Importer{}).Recognize(context.Background(), entry, timeline.RecognizeParams{})
+	if err != nil {
+		t.Fatalf("Recognize returned error: %v", err)
+	}
+	if rec.Confidence != 1 {
+		t.Fatalf("Recognize confidence = %v, want 1", rec.Confidence)
+	}
+	pipeline := make(chan *timeline.Graph, 1)
+	err = (&Importer{}).FileImport(context.Background(), entry, timeline.ImportParams{
+		Pipeline:          pipeline,
+		Log:               zap.NewNop(),
+		DataSourceOptions: &Options{},
+	})
+	if err != nil {
+		t.Fatalf("FileImport returned error: %v", err)
+	}
+	graph := <-pipeline
+	if graph.Item == nil || graph.Item.Metadata["Title"] != "Example" {
+		t.Fatalf("imported video graph = %#v, want Example metadata", graph)
+	}
+}

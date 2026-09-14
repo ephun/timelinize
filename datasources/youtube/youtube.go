@@ -30,6 +30,7 @@ const (
 	kindUnknown fileKind = iota
 	kindActivityHTML
 	kindPlaylistCSV
+	kindVideoMetadataCSV
 )
 
 func init() {
@@ -56,8 +57,8 @@ type Importer struct{}
 
 func (Importer) Recognize(_ context.Context, dirEntry timeline.DirEntry, _ timeline.RecognizeParams) (timeline.Recognition, error) {
 	for _, candidate := range []string{dirEntry.FullPath(), dirEntry.Filename, dirEntry.Name()} {
-		if kindForPath(candidate) == kindActivityHTML || kindForPath(candidate) == kindPlaylistCSV {
-			if kindForPath(candidate) == kindActivityHTML || strings.EqualFold(path.Ext(candidate), ".csv") {
+		if kind := kindForPath(candidate); kind != kindUnknown {
+			if kind == kindActivityHTML || strings.EqualFold(path.Ext(candidate), ".csv") {
 				return timeline.Recognition{Confidence: 1}, nil
 			}
 		}
@@ -102,6 +103,8 @@ func (i *Importer) importFile(ctx context.Context, fsys fs.FS, filename string, 
 		return i.importActivityHTML(ctx, fsys, filename, params, dsOpt)
 	case kindPlaylistCSV:
 		return i.importPlaylistCSV(ctx, fsys, filename, params, dsOpt)
+	case kindVideoMetadataCSV:
+		return i.importVideoMetadataCSV(ctx, fsys, filename, params, dsOpt)
 	default:
 		return fmt.Errorf("unrecognized YouTube export file %q", filename)
 	}
@@ -122,6 +125,9 @@ func kindForPath(filename string) fileKind {
 	}
 	if strings.Contains(normalized, "/youtube and youtube music/playlists/") && strings.HasSuffix(normalized, ".csv") {
 		return kindPlaylistCSV
+	}
+	if strings.Contains(normalized, "/youtube and youtube music/videos/") && strings.HasSuffix(normalized, "/video metadata.csv") {
+		return kindVideoMetadataCSV
 	}
 	return kindUnknown
 }
@@ -267,6 +273,89 @@ func (i *Importer) importPlaylistCSV(ctx context.Context, fsys fs.FS, filename s
 	}
 }
 
+func (i *Importer) importVideoMetadataCSV(ctx context.Context, fsys fs.FS, filename string, params timeline.ImportParams, dsOpt *Options) error {
+	file, err := fsys.Open(filename)
+	if err != nil {
+		return fmt.Errorf("opening YouTube video metadata CSV: %w", err)
+	}
+	defer file.Close()
+	reader := csv.NewReader(file)
+	reader.FieldsPerRecord = -1
+	headers, err := reader.Read()
+	if err != nil {
+		return fmt.Errorf("reading YouTube video metadata CSV headers: %w", err)
+	}
+	fields := headerIndexes(headers)
+	for _, required := range []string{"video id", "title", "time created"} {
+		if _, ok := fields[required]; !ok {
+			return fmt.Errorf("YouTube video metadata CSV is missing required column %q", required)
+		}
+	}
+	rowNumber := 1
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		record, err := reader.Read()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("reading YouTube video metadata CSV row %d: %w", rowNumber+1, err)
+		}
+		rowNumber++
+		row := rowValues(fields, record)
+		videoID := strings.TrimSpace(row["video id"])
+		if videoID == "" {
+			continue
+		}
+		when := firstTimestamp(row["time recorded"], row["time published"], row["time created"])
+		item := &timeline.Item{
+			ID:                   fmt.Sprintf("google_takeout_activity:video:%s:%d", filename, rowNumber),
+			Classification:       timeline.ClassMedia,
+			Timestamp:            when,
+			Owner:                timeline.Entity{ID: dsOpt.OwnerEntityID},
+			OriginalLocation:     filename,
+			IntermediateLocation: filename,
+			Content: timeline.ItemData{
+				Data:      timeline.StringData("https://www.youtube.com/watch?v=" + videoID),
+				MediaType: "text/plain",
+			},
+			Metadata: timeline.Metadata{
+				"Video ID":       videoID,
+				"Title":          strings.TrimSpace(row["title"]),
+				"Status":         strings.TrimSpace(row["status"]),
+				"Visibility":     strings.TrimSpace(row["visibility"]),
+				"Time created":   strings.TrimSpace(row["time created"]),
+				"Time published": strings.TrimSpace(row["time published"]),
+				"Time recorded":  strings.TrimSpace(row["time recorded"]),
+				"Duration":       strings.TrimSpace(row["duration"]),
+				"Description":    strings.TrimSpace(row["description"]),
+				"Category":       strings.TrimSpace(row["category"]),
+				"View count":     strings.TrimSpace(row["view count"]),
+			},
+		}
+		item.Metadata.Clean()
+		if !params.Timeframe.ContainsItem(item, false) {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case params.Pipeline <- &timeline.Graph{Item: item}:
+		}
+	}
+}
+
+func firstTimestamp(values ...string) time.Time {
+	for _, value := range values {
+		if parsed, err := parsePlaylistTimestamp(strings.TrimSpace(value)); err == nil {
+			return parsed
+		}
+	}
+	return time.Time{}
+}
+
 func firstLink(selection *goquery.Selection) (string, string) {
 	var title, href string
 	selection.Find("a").EachWithBreak(func(_ int, link *goquery.Selection) bool {
@@ -319,6 +408,16 @@ func parsePlaylistTimestamp(value string) (time.Time, error) {
 		}
 	}
 	return time.Time{}, fmt.Errorf("unsupported timestamp %q", value)
+}
+
+func rowValues(fields map[string]int, record []string) map[string]string {
+	row := make(map[string]string, len(fields))
+	for field, index := range fields {
+		if index < len(record) {
+			row[field] = record[index]
+		}
+	}
+	return row
 }
 
 func headerIndexes(record []string) map[string]int {
