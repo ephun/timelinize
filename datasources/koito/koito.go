@@ -182,7 +182,7 @@ func (i *Importer) FileImport(ctx context.Context, dirEntry timeline.DirEntry, p
 
 		item := &timeline.Item{
 			ID:                   listenID(export.User, listen, artists, trackName, albumName),
-			Classification:       timeline.ClassMedia,
+			Classification:       timeline.ClassEvent,
 			Timestamp:            listen.ListenedAt,
 			Owner:                owner,
 			OriginalLocation:     "koito:" + export.User,

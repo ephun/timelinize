@@ -42,7 +42,7 @@ func init() {
 		Name:            DataSourceID,
 		Title:           DataSourceTitle,
 		Icon:            "yamtrack.svg",
-		Description:     "A Yamtrack or Floppy CSV export of tracked media.",
+		Description:     "A Yamtrack or Floppy CSV export of tracked media state.",
 		NewOptions:      func() any { return new(Options) },
 		NewFileImporter: func() timeline.FileImporter { return new(Importer) },
 	})
@@ -89,7 +89,7 @@ func (Importer) Recognize(_ context.Context, dirEntry timeline.DirEntry, _ timel
 
 // FileImport imports tracked media rows. The export contains the current
 // tracking state rather than every watch event, so each row becomes one
-// lightweight media item at its progressed/end/start timestamp.
+// lightweight event at its most useful activity timestamp.
 func (i *Importer) FileImport(ctx context.Context, dirEntry timeline.DirEntry, params timeline.ImportParams) error {
 	dsOpt, ok := params.DataSourceOptions.(*Options)
 	if !ok || dsOpt == nil {
@@ -135,7 +135,7 @@ func (i *Importer) FileImport(ctx context.Context, dirEntry timeline.DirEntry, p
 		if rowType != "" && rowType != "media" {
 			continue
 		}
-		mediaType := strings.TrimSpace(row["media_type"])
+		mediaType := strings.ToLower(strings.TrimSpace(row["media_type"]))
 		if mediaType == "" {
 			continue
 		}
@@ -147,9 +147,9 @@ func (i *Importer) FileImport(ctx context.Context, dirEntry timeline.DirEntry, p
 			title = mediaID
 		}
 		item := &timeline.Item{
-			ID:                   stableID(source, mediaType, mediaID, row["season_number"], row["episode_number"], title),
-			Classification:       timeline.ClassMedia,
-			Timestamp:            parseTimestamp(row["progressed_at"], row["end_date"], row["start_date"]),
+			ID:                   stableID(source, mediaType, mediaID, row["season_number"], row["episode_number"], title, row["created_at"]),
+			Classification:       timeline.ClassEvent,
+			Timestamp:            rowTimestamp(mediaType, row),
 			Owner:                owner,
 			OriginalLocation:     fmt.Sprintf("%s:%s", source, mediaID),
 			IntermediateLocation: dirEntry.Filename,
@@ -170,6 +170,7 @@ func (i *Importer) FileImport(ctx context.Context, dirEntry timeline.DirEntry, p
 				"Start date":         strings.TrimSpace(row["start_date"]),
 				"End date":           strings.TrimSpace(row["end_date"]),
 				"Progressed at":      strings.TrimSpace(row["progressed_at"]),
+				"Created at":         strings.TrimSpace(row["created_at"]),
 				"Notes":              strings.TrimSpace(row["notes"]),
 				"Image URL":          strings.TrimSpace(row["image"]),
 			},
@@ -233,9 +234,20 @@ func parseTimestamp(values ...string) time.Time {
 	return time.Time{}
 }
 
-func stableID(source, mediaType, mediaID, season, episode, title string) string {
+func rowTimestamp(mediaType string, row map[string]string) time.Time {
+	if mediaType == "episode" {
+		return parseTimestamp(row["end_date"], row["progressed_at"], row["created_at"], row["start_date"])
+	}
+	return parseTimestamp(row["progressed_at"], row["end_date"], row["start_date"], row["created_at"])
+}
+
+func stableID(source, mediaType, mediaID, season, episode, title, createdAt string) string {
 	if mediaID == "" {
 		mediaID = title
 	}
-	return "yamtrack:" + strings.Join([]string{source, mediaType, mediaID, strings.TrimSpace(season), strings.TrimSpace(episode)}, "/")
+	parts := []string{source, mediaType, mediaID, strings.TrimSpace(season), strings.TrimSpace(episode)}
+	if strings.TrimSpace(createdAt) != "" {
+		parts = append(parts, strings.TrimSpace(createdAt))
+	}
+	return "yamtrack:" + strings.Join(parts, "/")
 }

@@ -92,8 +92,8 @@ func TestFileImport(t *testing.T) {
 	if !strings.HasPrefix(item.ID, "koito:") || len(item.ID) != len("koito:")+64 {
 		t.Fatalf("unexpected item ID %q", item.ID)
 	}
-	if item.Classification.Name != timeline.ClassMedia.Name {
-		t.Fatalf("classification = %v, want media", item.Classification)
+	if item.Classification.Name != timeline.ClassEvent.Name {
+		t.Fatalf("classification = %v, want event", item.Classification)
 	}
 	if item.Owner.ID != 7 {
 		t.Fatalf("owner ID = %d, want 7", item.Owner.ID)

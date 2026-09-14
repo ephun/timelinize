@@ -44,7 +44,7 @@ func init() {
 		Name:            "geojson",
 		Title:           "GeoJSON",
 		Icon:            "geojson.svg",
-		Description:     "GeoJSON files containing a collection of points",
+		Description:     "GeoJSON files containing a collection of points (including .json exports)",
 		NewOptions:      func() any { return new(Options) },
 		NewFileImporter: func() timeline.FileImporter { return new(FileImporter) },
 	})
@@ -80,12 +80,30 @@ func (FileImporter) Recognize(_ context.Context, dirEntry timeline.DirEntry, _ t
 	rec := timeline.Recognition{DirThreshold: .9}
 
 	// we can import directories, but let the import planner figure that out; only recognize files
-	if dirEntry.IsDir() {
+	if info, err := fs.Stat(dirEntry.FS, dirEntry.Filename); err == nil && info.IsDir() {
 		return rec, nil
 	}
 
 	// recognize by file extension
-	if strings.ToLower(path.Ext(dirEntry.Name())) == ".geojson" {
+	ext := strings.ToLower(path.Ext(dirEntry.Filename))
+	if ext == ".geojson" {
+		rec.Confidence = 1
+		return rec, nil
+	}
+	if ext != ".json" {
+		return rec, nil
+	}
+
+	// Dawarich exports GeoJSON with a .json suffix inside its ZIP export.
+	file, err := dirEntry.FS.Open(dirEntry.Filename)
+	if err != nil {
+		return rec, err
+	}
+	defer file.Close()
+	var header struct {
+		Type string `json:"type"`
+	}
+	if err := json.NewDecoder(io.LimitReader(file, 4096)).Decode(&header); err == nil && header.Type == "FeatureCollection" {
 		rec.Confidence = 1
 	}
 
@@ -115,7 +133,7 @@ func (fi *FileImporter) FileImport(ctx context.Context, dirEntry timeline.DirEnt
 		}
 
 		// skip unsupported file types
-		if ext := strings.ToLower(path.Ext(d.Name())); ext != ".geojson" {
+		if ext := strings.ToLower(path.Ext(d.Name())); ext != ".geojson" && ext != ".json" {
 			return nil
 		}
 

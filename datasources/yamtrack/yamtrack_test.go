@@ -78,8 +78,8 @@ func TestFileImport(t *testing.T) {
 	if movie.ID != "yamtrack:tmdb:movie:10494//" {
 		t.Fatalf("movie ID = %q", movie.ID)
 	}
-	if movie.Classification.Name != timeline.ClassMedia.Name {
-		t.Fatalf("movie classification = %v, want media", movie.Classification)
+	if movie.Classification.Name != timeline.ClassEvent.Name {
+		t.Fatalf("movie classification = %v, want event", movie.Classification)
 	}
 	if movie.Owner.ID != 42 {
 		t.Fatalf("movie owner ID = %d, want 42", movie.Owner.ID)
