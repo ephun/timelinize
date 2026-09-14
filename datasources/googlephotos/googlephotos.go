@@ -53,17 +53,32 @@ type FileImporter struct {
 // Recognize returns whether this file or folder is supported.
 func (FileImporter) Recognize(_ context.Context, dirEntry timeline.DirEntry, _ timeline.RecognizeParams) (timeline.Recognition, error) {
 	// prefer a Google Takeout archive with Google Photos data inside it
-	if dirEntry.IsDir() && strings.HasSuffix(filepath.ToSlash(dirEntry.FullPath()), googlePhotosPath) {
+	if isGooglePhotosTakeoutDir(dirEntry) {
 		return timeline.Recognition{Confidence: .9}, nil
 	}
 	return timeline.Recognition{}, nil
+}
+
+func isGooglePhotosTakeoutDir(dirEntry timeline.DirEntry) bool {
+	if !dirEntry.IsDir() {
+		return false
+	}
+	fullPath := filepath.ToSlash(dirEntry.FullPath())
+	if strings.HasSuffix(fullPath, googlePhotosPath) {
+		return true
+	}
+	// Some older Takeout exports are extracted or reorganized so the
+	// "Takeout/" prefix is absent. The stable root-level sidecar files make
+	// this shape distinguishable without walking the directory.
+	return strings.EqualFold(filepath.Base(fullPath), "Google Photos") &&
+		dirEntry.FileExists("shared_album_comments.json")
 }
 
 // FileImport imports data from a file/folder.
 func (fimp *FileImporter) FileImport(ctx context.Context, dirEntry timeline.DirEntry, params timeline.ImportParams) error {
 	fimp.filename = dirEntry.FullPath()
 
-	if strings.HasSuffix(filepath.ToSlash(dirEntry.FullPath()), googlePhotosPath) {
+	if isGooglePhotosTakeoutDir(dirEntry) {
 		return fimp.listFromTakeoutArchive(ctx, params, dirEntry)
 	}
 

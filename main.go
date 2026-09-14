@@ -27,6 +27,7 @@ import (
 	_ "github.com/timelinize/timelinize/datasources/applephotos"
 	_ "github.com/timelinize/timelinize/datasources/calendar"
 	_ "github.com/timelinize/timelinize/datasources/contactlist"
+	_ "github.com/timelinize/timelinize/datasources/discord"
 	_ "github.com/timelinize/timelinize/datasources/email"
 	_ "github.com/timelinize/timelinize/datasources/facebook"
 	_ "github.com/timelinize/timelinize/datasources/firefox"
@@ -52,6 +53,7 @@ import (
 	_ "github.com/timelinize/timelinize/datasources/vcard"
 	_ "github.com/timelinize/timelinize/datasources/whatsapp"
 	_ "github.com/timelinize/timelinize/datasources/yamtrack"
+	_ "github.com/timelinize/timelinize/datasources/youtube"
 )
 
 // Package main is the entry point of the application.
