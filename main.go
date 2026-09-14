@@ -42,6 +42,7 @@ import (
 	_ "github.com/timelinize/timelinize/datasources/instagram"
 	_ "github.com/timelinize/timelinize/datasources/iphone"
 	_ "github.com/timelinize/timelinize/datasources/kmlgx"
+	_ "github.com/timelinize/timelinize/datasources/koito"
 	_ "github.com/timelinize/timelinize/datasources/media"
 	_ "github.com/timelinize/timelinize/datasources/nmea"
 	_ "github.com/timelinize/timelinize/datasources/smsbackuprestore"
@@ -50,6 +51,7 @@ import (
 	_ "github.com/timelinize/timelinize/datasources/twitter"
 	_ "github.com/timelinize/timelinize/datasources/vcard"
 	_ "github.com/timelinize/timelinize/datasources/whatsapp"
+	_ "github.com/timelinize/timelinize/datasources/yamtrack"
 )
 
 // Package main is the entry point of the application.
