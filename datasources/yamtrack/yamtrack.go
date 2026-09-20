@@ -245,9 +245,10 @@ func stableID(source, mediaType, mediaID, season, episode, title, createdAt stri
 	if mediaID == "" {
 		mediaID = title
 	}
-	parts := []string{source, mediaType, mediaID, strings.TrimSpace(season), strings.TrimSpace(episode)}
+	id := fmt.Sprintf("yamtrack:%s:%s:%s/%s/%s",
+		source, mediaType, mediaID, strings.TrimSpace(season), strings.TrimSpace(episode))
 	if strings.TrimSpace(createdAt) != "" {
-		parts = append(parts, strings.TrimSpace(createdAt))
+		id += "/" + strings.TrimSpace(createdAt)
 	}
-	return "yamtrack:" + strings.Join(parts, "/")
+	return id
 }

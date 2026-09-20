@@ -335,6 +335,12 @@ async function renderDataSourceOptionsModal(ds) {
 		// This data source can sometimes detect its owner, so it's not required for us to assume!
 		newEntitySelect($('.apple_photos-owner', dsOptElem), 1);
 	}
+	if (ds.name == "immich") {
+		const entitySelect = newEntitySelect($('.immich-owner', dsOptElem), 1);
+		const owner = await getOwner();
+		entitySelect.addOption(owner);
+		entitySelect.addItem(owner.id);
+	}
 }
 
 function updateFileCountDisplays(dsgroupElem) {
@@ -606,6 +612,15 @@ async function dataSourceOptions(ds) {
 			include_trashed: $('.apple_photos-trashed', dsoptContainer).checked
 		};
 		const owner = $('.apple_photos-owner', dsoptContainer).tomselect.getValue();
+		if (owner.length) {
+			dsOpt.owner_entity_id = Number(owner[0]);
+		}
+	}
+	if (ds.name == "immich") {
+		dsOpt = {
+			include_trashed: $('.immich-trashed', dsoptContainer).checked
+		};
+		const owner = $('.immich-owner', dsoptContainer).tomselect.getValue();
 		if (owner.length) {
 			dsOpt.owner_entity_id = Number(owner[0]);
 		}

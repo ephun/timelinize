@@ -37,7 +37,7 @@ func init() {
 	err := timeline.RegisterDataSource(timeline.DataSource{
 		Name:            DataSourceID,
 		Title:           DataSourceTitle,
-		Icon:            "folder.svg",
+		Icon:            "youtube.svg",
 		Description:     "Read-only Google Takeout My Activity and YouTube history/playlist exports.",
 		NewOptions:      func() any { return new(Options) },
 		NewFileImporter: func() timeline.FileImporter { return new(Importer) },

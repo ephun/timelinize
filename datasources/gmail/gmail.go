@@ -39,6 +39,7 @@ func init() {
 	err := timeline.RegisterDataSource(timeline.DataSource{
 		Name:           "gmail",
 		Title:          "Gmail",
+		Icon:           "gmail.svg",
 		NewAPIImporter: func() timeline.APIImporter { return new(Client) },
 		// OAuth2: timeline.OAuth2{
 		// 	ProviderID: "google",

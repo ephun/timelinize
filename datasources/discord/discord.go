@@ -25,7 +25,7 @@ func init() {
 	err := timeline.RegisterDataSource(timeline.DataSource{
 		Name:            DataSourceID,
 		Title:           DataSourceTitle,
-		Icon:            "folder.svg",
+		Icon:            "discord.svg",
 		Description:     "Read-only Discord Chat Exporter CSV and official Discord data-package exports.",
 		NewOptions:      func() any { return new(Options) },
 		NewFileImporter: func() timeline.FileImporter { return new(Importer) },

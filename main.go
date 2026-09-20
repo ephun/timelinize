@@ -40,6 +40,7 @@ import (
 	_ "github.com/timelinize/timelinize/datasources/googlevoice"
 	_ "github.com/timelinize/timelinize/datasources/gpx"
 	_ "github.com/timelinize/timelinize/datasources/icloud"
+	_ "github.com/timelinize/timelinize/datasources/immich"
 	_ "github.com/timelinize/timelinize/datasources/instagram"
 	_ "github.com/timelinize/timelinize/datasources/iphone"
 	_ "github.com/timelinize/timelinize/datasources/kmlgx"

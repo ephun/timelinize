@@ -23,3 +23,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## discord.svg, gmail.svg, youtube.svg
+
+Brand icons sourced from https://simpleicons.org/ (CC0 1.0 Universal).
+
+## immich.svg
+
+Immich logo sourced from https://github.com/immich-app/immich/blob/main/design/immich-logo.svg.
